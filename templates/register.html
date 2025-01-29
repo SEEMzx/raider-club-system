@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>注册</h2>
+    <form method="POST" class="auth-form">
+        <div class="form-group">
+            <label for="username">昵称（两个汉字）</label>
+            <input type="text" id="username" name="username" required maxlength="2" pattern="[\u4e00-\u9fff]{2}">
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">注册</button>
+    </form>
+    <p class="auth-link">已有账号？<a href="{{ url_for('login') }}">立即登录</a></p>
+</div>
+{% endblock %}

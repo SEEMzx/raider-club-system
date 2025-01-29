@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="team-container">
+    <div class="team-header">
+        <div class="team-title">
+            <h2><i class="fas fa-shield-alt"></i> {{ team.name }}</h2>
+            <span class="team-stats">
+                成员数: {{ team.members|length }}
+                {% set total_team_kills = namespace(value=0) %}
+                {% set total_team_deaths = namespace(value=0) %}
+                {% for member in team.members %}
+                    {% set total_team_kills.value = total_team_kills.value + member.total_kills %}
+                    {% set total_team_deaths.value = total_team_deaths.value + member.total_deaths %}
+                {% endfor %}
+                <span class="stat-item">
+                    <i class="fas fa-skull"></i> 团队总击杀: {{ total_team_kills.value }}
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-dizzy"></i> 团队总死亡: {{ total_team_deaths.value }}
+                </span>
+                <span class="stat-item">
+                    <i class="fas fa-balance-scale"></i> 团队K/D: 
+                    {{ (total_team_kills.value / total_team_deaths.value)|round(2) if total_team_deaths.value > 0 else total_team_kills.value }}
+                </span>
+            </span>
+        </div>
+    </div>
+    
+    {% if current_user.role == 'leader' and current_user.team_id == team.id %}
+    <div class="team-management">
+        <div class="section-header">
+            <h3><i class="fas fa-users-cog"></i> 团队管理</h3>
+        </div>
+        <div class="team-grid">
+            {% for member in team.members %}
+            <div class="member-card {% if member.role == 'leader' %}leader-card{% endif %}">
+                <div class="member-avatar">
+                    <i class="fas {% if member.role == 'leader' %}fa-crown{% else %}fa-user{% endif %}"></i>
+                </div>
+                <div class="member-info">
+                    <div class="member-name">{{ member.display_name }}</div>
+                    <div class="member-role">{{ '队长' if member.role == 'leader' else '队员' }}</div>
+                    <div class="member-stats">
+                        <div class="stat">
+                            <i class="fas fa-skull"></i> {{ member.total_kills }}
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-dizzy"></i> {{ member.total_deaths }}
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-balance-scale"></i> {{ member.kd_ratio }}
+                        </div>
+                    </div>
+                    {% if current_user.id != member.id %}
+                    <button class="btn btn-danger btn-small" onclick="removeMember({{ member.id }}, '{{ member.username }}')">
+                        <i class="fas fa-user-minus"></i> 移出团队
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="team-info">
+        <div class="section-header">
+            <h3><i class="fas fa-users"></i> 团队成员</h3>
+        </div>
+        <div class="team-grid">
+            {% for member in team.members %}
+            <div class="member-card {% if member.role == 'leader' %}leader-card{% endif %}">
+                <div class="member-avatar">
+                    <i class="fas {% if member.role == 'leader' %}fa-crown{% else %}fa-user{% endif %}"></i>
+                </div>
+                <div class="member-info">
+                    <div class="member-name">{{ member.display_name }}</div>
+                    <div class="member-role">{{ '队长' if member.role == 'leader' else '队员' }}</div>
+                    <div class="member-stats">
+                        <div class="stat">
+                            <i class="fas fa-skull"></i> {{ member.total_kills }}
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-dizzy"></i> {{ member.total_deaths }}
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-balance-scale"></i> {{ member.kd_ratio }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function removeMember(memberId, username) {
+    if (!confirm(`确定要将 ${username} 移出团队吗？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/team/member/${memberId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=remove'
+        });
+        
+        if (!response.ok) {
+            throw new Error('操作失败');
+        }
+        
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('操作失败，请重试');
+    }
+}
+</script>
+
+<style>
+.team-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.team-header {
+    background: linear-gradient(135deg, rgba(16, 24, 39, 0.8), rgba(17, 24, 39, 0.6));
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(100, 255, 218, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.team-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.team-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.15), rgba(100, 255, 218, 0.05));
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    border: 1px solid rgba(100, 255, 218, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    color: #64ffda;
+    text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.member-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(17, 24, 39, 0.6));
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(100, 255, 218, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+    border-color: rgba(100, 255, 218, 0.2);
+}
+
+.leader-card {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(30, 41, 59, 0.8));
+    border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.leader-card:hover {
+    border-color: rgba(234, 179, 8, 0.3);
+    box-shadow: 0 8px 12px rgba(234, 179, 8, 0.1);
+}
+
+.leader-card .member-avatar {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.1));
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.leader-card .member-role {
+    color: #eab308;
+}
+
+.member-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.15), rgba(100, 255, 218, 0.05));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    border: 1px solid rgba(100, 255, 218, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.member-role {
+    color: #64ffda;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.member-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.stat {
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.15), rgba(100, 255, 218, 0.05));
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    border: 1px solid rgba(100, 255, 218, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat:hover {
+    transform: translateY(-2px);
+    border-color: rgba(100, 255, 218, 0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.2));
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+</style>
+{% endblock %}

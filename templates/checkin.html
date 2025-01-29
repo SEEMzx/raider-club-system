@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="checkin-container">
+    <h2>每日打卡</h2>
+    
+    <div class="checkin-form-container">
+        <form method="POST" enctype="multipart/form-data" class="checkin-form">
+            <div class="form-group">
+                <label for="screenshot">游戏截图</label>
+                <input type="file" id="screenshot" name="screenshot" accept="image/*" required>
+                <small class="form-text">支持PNG、JPG、JPEG、GIF格式，大小不超过16MB</small>
+            </div>
+            <div class="form-group">
+                <label for="team_type">队伍类型</label>
+                <select id="team_type" name="team_type" required>
+                    <option value="">请选择队伍类型</option>
+                    <option value="{{ TEAM_TYPE_VEHICLE }}">{{ TEAM_TYPES[TEAM_TYPE_VEHICLE] }}</option>
+                    <option value="{{ TEAM_TYPE_INFANTRY }}">{{ TEAM_TYPES[TEAM_TYPE_INFANTRY] }}</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="kills">击杀数</label>
+                    <input type="number" id="kills" name="kills" min="0" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="deaths">死亡数</label>
+                    <input type="number" id="deaths" name="deaths" min="0" value="0" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="note">备注</label>
+                <textarea id="note" name="note" rows="3" placeholder="记录今天的游戏心得..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">提交打卡</button>
+        </form>
+    </div>
+
+    <div class="checkin-history">
+        <h3>我的打卡历史</h3>
+        {% if checkins %}
+            <div class="checkin-grid">
+                {% for checkin in checkins %}
+                <div class="checkin-card">
+                    <div class="checkin-header">
+                        <span class="checkin-time">{{ checkin.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                        <span class="checkin-status {{ checkin.status }}">{{ {'pending': '待审核', 'approved': '已通过', 'rejected': '已拒绝'}[checkin.status] }}</span>
+                    </div>
+                    <div class="checkin-image">
+                        <img src="{{ url_for('static', filename='uploads/' + checkin.screenshot_path) }}" alt="游戏截图">
+                    </div>
+                    <div class="checkin-stats">
+                        <span class="stat-item">击杀: {{ checkin.kills }}</span>
+                        <span class="stat-item">死亡: {{ checkin.deaths }}</span>
+                        <span class="stat-item">队伍类型: {{ TEAM_TYPES[checkin.team_type] }}</span>
+                    </div>
+                    {% if checkin.note %}
+                        <div class="checkin-note">{{ checkin.note }}</div>
+                    {% endif %}
+                    {% if checkin.review_note %}
+                        <div class="review-note">
+                            <strong>审核意见：</strong> {{ checkin.review_note }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-records">暂无打卡记录</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

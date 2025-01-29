@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>团队管理</h2>
+    
+    <div class="admin-section">
+        <h3>创建新团队</h3>
+        <form method="POST" class="team-form">
+            <input type="hidden" name="action" value="create_team">
+            <div class="form-group">
+                <input type="text" name="team_name" placeholder="输入团队名称" required>
+                <button type="submit" class="btn btn-primary">创建团队</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-section">
+        <h3>现有团队</h3>
+        <div class="team-list">
+            {% for team in teams %}
+            <div class="team-card">
+                <div class="team-header">
+                    <h4>{{ team.name }}</h4>
+                    <form method="POST" class="delete-team-form" onsubmit="return confirm('确定要删除这个团队吗？团队成员将被重置为普通成员。');">
+                        <input type="hidden" name="action" value="delete_team">
+                        <input type="hidden" name="team_id" value="{{ team.id }}">
+                        <button type="submit" class="btn btn-danger btn-small">删除团队</button>
+                    </form>
+                </div>
+                
+                <div class="team-members">
+                    <h5>团队成员</h5>
+                    {% if team.members %}
+                        <ul>
+                        {% for member in team.members %}
+                            <li>
+                                {{ member.username }}
+                                {% if member.role == 'leader' %}
+                                    <span class="badge leader">队长</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-members">暂无成员</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

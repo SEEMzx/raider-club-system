@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>个人中心</h1>
+        <div class="user-info">
+            <p>用户名：{{ current_user.username }}</p>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <h2>数据统计</h2>
+        
+        <!-- 总计数据 -->
+        <div class="stats-section">
+            <h3>总计数据</h3>
+            <div class="stats-grid">
+                <div class="stats-card total">
+                    <h4>总计</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ total_stats['total']['kills'] }}</p>
+                        <p>死亡：{{ total_stats['total']['deaths'] }}</p>
+                        <p>KD比：{{ total_stats['total']['kd'] }}</p>
+                    </div>
+                </div>
+                <div class="stats-card vehicle">
+                    <h4>载具战</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ total_stats[TEAM_TYPE_VEHICLE]['kills'] }}</p>
+                        <p>死亡：{{ total_stats[TEAM_TYPE_VEHICLE]['deaths'] }}</p>
+                        <p>KD比：{{ total_stats[TEAM_TYPE_VEHICLE]['kd'] }}</p>
+                    </div>
+                </div>
+                <div class="stats-card infantry">
+                    <h4>步战</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ total_stats[TEAM_TYPE_INFANTRY]['kills'] }}</p>
+                        <p>死亡：{{ total_stats[TEAM_TYPE_INFANTRY]['deaths'] }}</p>
+                        <p>KD比：{{ total_stats[TEAM_TYPE_INFANTRY]['kd'] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近30天数据 -->
+        <div class="stats-section">
+            <h3>最近30天数据</h3>
+            <div class="stats-grid">
+                <div class="stats-card total">
+                    <h4>总计</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ recent_stats['total']['kills'] }}</p>
+                        <p>死亡：{{ recent_stats['total']['deaths'] }}</p>
+                        <p>KD比：{{ recent_stats['total']['kd'] }}</p>
+                    </div>
+                </div>
+                <div class="stats-card vehicle">
+                    <h4>载具战</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ recent_stats[TEAM_TYPE_VEHICLE]['kills'] }}</p>
+                        <p>死亡：{{ recent_stats[TEAM_TYPE_VEHICLE]['deaths'] }}</p>
+                        <p>KD比：{{ recent_stats[TEAM_TYPE_VEHICLE]['kd'] }}</p>
+                    </div>
+                </div>
+                <div class="stats-card infantry">
+                    <h4>步战</h4>
+                    <div class="stats-data">
+                        <p>击杀：{{ recent_stats[TEAM_TYPE_INFANTRY]['kills'] }}</p>
+                        <p>死亡：{{ recent_stats[TEAM_TYPE_INFANTRY]['deaths'] }}</p>
+                        <p>KD比：{{ recent_stats[TEAM_TYPE_INFANTRY]['kd'] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近7天趋势图 -->
+        <div class="stats-section">
+            <h3>最近7天趋势</h3>
+            <div class="trend-chart">
+                <canvas id="statsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近签到记录 -->
+    <div class="checkins-container">
+        <h2>最近签到记录</h2>
+        <div class="checkins-list">
+            {% for checkin in checkins[:10] %}
+            <div class="checkin-card">
+                <div class="checkin-header">
+                    <span class="checkin-date">{{ checkin.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span class="checkin-type {{ checkin.team_type }}">
+                        {% if checkin.team_type == TEAM_TYPE_VEHICLE %}
+                        载具战
+                        {% else %}
+                        步战
+                        {% endif %}
+                    </span>
+                    <span class="checkin-status {{ checkin.status }}">
+                        {% if checkin.status == 'pending' %}
+                        待审核
+                        {% elif checkin.status == 'approved' %}
+                        已通过
+                        {% else %}
+                        已拒绝
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="checkin-stats">
+                    <span>击杀：{{ checkin.kills }}</span>
+                    <span>死亡：{{ checkin.deaths }}</span>
+                    <span>KD比：{{ "%.2f"|format(checkin.kills / checkin.deaths) if checkin.deaths > 0 else checkin.kills }}</span>
+                </div>
+                {% if checkin.description %}
+                <div class="checkin-description">
+                    {{ checkin.description }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.profile-header {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(23, 42, 69, 0.7);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.stats-container {
+    margin-bottom: 30px;
+}
+
+.stats-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(23, 42, 69, 0.7);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stats-card {
+    padding: 15px;
+    border-radius: 8px;
+    background: rgba(10, 25, 47, 0.7);
+    border: 1px solid var(--border-color);
+}
+
+.stats-card h4 {
+    margin: 0 0 10px 0;
+    color: var(--accent-color);
+    font-size: 1.1rem;
+}
+
+.stats-data p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.trend-chart {
+    height: 300px;
+    margin-top: 20px;
+}
+
+.checkins-container {
+    margin-bottom: 30px;
+}
+
+.checkins-list {
+    display: grid;
+    gap: 15px;
+}
+
+.checkin-card {
+    padding: 15px;
+    background: rgba(23, 42, 69, 0.7);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.checkin-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.checkin-type {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.checkin-type.vehicle {
+    background: rgba(65, 184, 131, 0.2);
+    color: #41b883;
+}
+
+.checkin-type.infantry {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.checkin-status {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.checkin-status.pending {
+    background: rgba(234, 179, 8, 0.2);
+    color: #eab308;
+}
+
+.checkin-status.approved {
+    background: rgba(65, 184, 131, 0.2);
+    color: #41b883;
+}
+
+.checkin-status.rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.checkin-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.checkin-description {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .checkin-header {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .checkin-stats {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    
+    const dates = {{ daily_stats['dates']|tojson }};
+    const kills = {{ daily_stats['kills']|tojson }};
+    const deaths = {{ daily_stats['deaths']|tojson }};
+    const kd = {{ daily_stats['kd']|tojson }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: '击杀',
+                data: kills,
+                borderColor: '#41b883',
+                backgroundColor: 'rgba(65, 184, 131, 0.2)',
+                tension: 0.4
+            }, {
+                label: '死亡',
+                data: deaths,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                tension: 0.4
+            }, {
+                label: 'KD比',
+                data: kd,
+                borderColor: '#64ffda',
+                backgroundColor: 'rgba(100, 255, 218, 0.2)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#e2e8f0'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#e2e8f0'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#e2e8f0'
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

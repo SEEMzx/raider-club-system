@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>{{ user.username }} 的打卡记录</h2>
+    
+    <div class="user-stats">
+        <div class="stat-card">
+            <div class="stat-title">总击杀</div>
+            <div class="stat-value">{{ user.total_kills }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">总死亡</div>
+            <div class="stat-value">{{ user.total_deaths }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">K/D比</div>
+            <div class="stat-value">{{ user.kd_ratio }}</div>
+        </div>
+    </div>
+
+    <div class="checkin-grid">
+        {% for checkin in checkins %}
+        <div class="checkin-card">
+            <div class="checkin-header">
+                <span class="checkin-time">{{ checkin.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                <span class="checkin-status {{ checkin.status }}">{{ {'pending': '待审核', 'approved': '已通过', 'rejected': '已拒绝'}[checkin.status] }}</span>
+            </div>
+            <div class="checkin-image">
+                <img src="{{ url_for('static', filename='uploads/' + checkin.screenshot_path) }}" 
+                     alt="游戏截图"
+                     class="zoomable-image"
+                     onclick="openImageModal(this.src)">
+            </div>
+            <div class="checkin-stats">
+                <span class="stat-item">击杀: {{ checkin.kills }}</span>
+                <span class="stat-item">死亡: {{ checkin.deaths }}</span>
+                <span class="stat-item">队伍类型: {{ TEAM_TYPES[checkin.team_type] }}</span>
+            </div>
+            {% if checkin.note %}
+                <div class="checkin-note">{{ checkin.note }}</div>
+            {% endif %}
+            
+            {% if checkin.status == 'pending' %}
+            <div class="review-form">
+                <form class="review-actions" data-checkin-id="{{ checkin.id }}">
+                    <textarea name="review_note" placeholder="审核意见..." class="review-note-input"></textarea>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-success review-btn" data-action="approve">通过</button>
+                        <button type="button" class="btn btn-danger review-btn" data-action="reject">拒绝</button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+                {% if checkin.review_note %}
+                <div class="review-note">
+                    <strong>审核意见：</strong> {{ checkin.review_note }}
+                </div>
+                {% endif %}
+                {% if checkin.status != 'pending' %}
+                <div class="review-actions" style="margin-top: 10px; text-align: right;">
+                    <button type="button" class="btn btn-primary re-review-btn" 
+                            data-checkin-id="{{ checkin.id }}"
+                            onclick="reReviewCheckin({{ checkin.id }})">
+                        重新审核
+                    </button>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 图片放大模态框 -->
+<div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImage">
+</div>
+
+<script>
+// 图片放大功能
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = "block";
+    modalImg.src = src;
+}
+
+// 关闭模态框
+document.querySelector('.modal-close').onclick = function() {
+    document.getElementById('imageModal').style.display = "none";
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+// 审核功能
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForms = document.querySelectorAll('.review-actions');
+    
+    reviewForms.forEach(form => {
+        const checkinId = form.dataset.checkinId;
+        const reviewBtns = form.querySelectorAll('.review-btn');
+        
+        reviewBtns.forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const action = btn.dataset.action;
+                const reviewNote = form.querySelector('.review-note-input').value;
+                
+                try {
+                    const response = await fetch(`/review_checkin/${checkinId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=${action}&review_note=${encodeURIComponent(reviewNote)}`
+                    });
+                    
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('审核失败，请重试');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('发生错误，请重试');
+                }
+            });
+        });
+    });
+});
+
+// 重新审核功能
+function reReviewCheckin(checkinId) {
+    if (confirm('确定要重新审核这条记录吗？')) {
+        fetch(`/review_checkin/${checkinId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=re-review'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.error || '操作失败，请重试');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('发生错误，请重试');
+        });
+    }
+}
+</script>
+{% endblock %}

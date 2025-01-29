@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>打卡记录管理</h2>
+    
+    <div class="admin-section">
+        <h3>待审核记录</h3>
+        <div class="latest-checkins">
+            {% for checkin in latest_checkins %}
+            {% if checkin.status == 'pending' %}
+            <div class="checkin-card">
+                <div class="checkin-header">
+                    <span class="user-tag">{{ checkin.user.username }}</span>
+                    <span class="checkin-time">{{ checkin.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    <span class="checkin-status {{ checkin.status }}">待审核</span>
+                </div>
+                <div class="checkin-image">
+                    <img src="{{ url_for('static', filename='uploads/' + checkin.screenshot_path) }}" 
+                         alt="游戏截图"
+                         class="zoomable-image"
+                         onclick="openImageModal(this.src)">
+                </div>
+                <div class="checkin-stats">
+                    <span class="stat-item">击杀: {{ checkin.kills }}</span>
+                    <span class="stat-item">死亡: {{ checkin.deaths }}</span>
+                    <span class="stat-item">队伍类型: {{ TEAM_TYPES[checkin.team_type] }}</span>
+                </div>
+                {% if checkin.note %}
+                    <div class="checkin-note">{{ checkin.note }}</div>
+                {% endif %}
+                
+                <div class="review-form">
+                    <form class="review-actions" data-checkin-id="{{ checkin.id }}">
+                        <textarea name="review_note" placeholder="审核意见..." class="review-note-input"></textarea>
+                        <div class="button-group" style="display: flex; justify-content: space-between; margin: 10px 0;">
+                            <button type="button" class="btn btn-success review-btn" data-action="approve" style="width: 49%; padding: 8px 0;">通过</button>
+                            <button type="button" class="btn btn-danger review-btn" data-action="reject" style="width: 49%; padding: 8px 0;">拒绝</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-section">
+        <h3>成员列表</h3>
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>昵称</th>
+                    <th>总打卡次数</th>
+                    <th>待审核</th>
+                    <th>总击杀</th>
+                    <th>总死亡</th>
+                    <th>K/D比</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in user_stats %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.total_checkins }}</td>
+                    <td>
+                        {% if user.pending_checkins > 0 %}
+                            <span class="badge pending">{{ user.pending_checkins }}</span>
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+                    <td>{{ user.total_kills }}</td>
+                    <td>{{ user.total_deaths }}</td>
+                    <td>{{ user.kd_ratio }}</td>
+                    <td>
+                        <a href="{{ url_for('user_checkins', user_id=user.id) }}" class="btn btn-small">查看记录</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 图片放大模态框 -->
+<div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImage">
+</div>
+
+<script>
+// 图片放大功能
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = "block";
+    modalImg.src = src;
+}
+
+// 关闭模态框
+document.querySelector('.modal-close').onclick = function() {
+    document.getElementById('imageModal').style.display = "none";
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+// 审核功能
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForms = document.querySelectorAll('.review-actions');
+    
+    reviewForms.forEach(form => {
+        const checkinId = form.dataset.checkinId;
+        const reviewBtns = form.querySelectorAll('.review-btn');
+        
+        reviewBtns.forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const action = btn.dataset.action;
+                const reviewNote = form.querySelector('.review-note-input').value;
+                
+                try {
+                    const response = await fetch(`/review_checkin/${checkinId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=${action}&review_note=${encodeURIComponent(reviewNote)}`
+                    });
+                    
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('审核失败，请重试');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('发生错误，请重试');
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

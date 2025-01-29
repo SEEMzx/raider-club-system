@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1><i class="fas fa-shield-alt"></i> RAIDER 俱乐部</h1>
+    <p class="subtitle"><i class="fas fa-crosshairs"></i> 精英战术训练中心</p>
+    {% if not current_user.is_authenticated %}
+        <div class="cta-buttons">
+            <a href="{{ url_for('register') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> 立即加入
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">
+                <i class="fas fa-sign-in-alt"></i> 成员登录
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% if current_user.is_authenticated %}
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <i class="fas fa-chart-line"></i>
+        <h3>训练进度</h3>
+        <p>查看您的训练数据和进度统计</p>
+    </div>
+    <div class="dashboard-card">
+        <i class="fas fa-users"></i>
+        <h3>团队协作</h3>
+        <p>加入或创建您的战术小队</p>
+    </div>
+    <div class="dashboard-card">
+        <i class="fas fa-trophy"></i>
+        <h3>排行榜</h3>
+        <p>查看最新的击杀排名</p>
+    </div>
+    <div class="dashboard-card">
+        <i class="fas fa-calendar-check"></i>
+        <h3>每日打卡</h3>
+        <p>记录您的训练成果</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

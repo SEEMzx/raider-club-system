@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="leaderboard-container">
+    <h2>排行榜</h2>
+
+    <!-- 选择器组 -->
+    <div class="selector-container">
+        <!-- 时间范围选择 -->
+        <div class="selector-group">
+            <div class="selector-label">时间范围</div>
+            <div class="selector-buttons">
+                <button class="selector-btn active" data-period="total">总榜</button>
+                <button class="selector-btn" data-period="year">年榜</button>
+                <button class="selector-btn" data-period="month">月榜</button>
+                <button class="selector-btn" data-period="week">周榜</button>
+                <button class="selector-btn" data-period="day">日榜</button>
+            </div>
+        </div>
+
+        <!-- 队伍类型选择 -->
+        <div class="selector-group">
+            <div class="selector-label">队伍类型</div>
+            <div class="selector-buttons">
+                <button class="selector-btn active" data-team="total">总击杀</button>
+                <button class="selector-btn" data-team="{{ TEAM_TYPE_VEHICLE }}">{{ TEAM_TYPES[TEAM_TYPE_VEHICLE] }}</button>
+                <button class="selector-btn" data-team="{{ TEAM_TYPE_INFANTRY }}">{{ TEAM_TYPES[TEAM_TYPE_INFANTRY] }}</button>
+            </div>
+        </div>
+
+        <!-- 排序方式选择 -->
+        <div class="selector-group">
+            <div class="selector-label">排序方式</div>
+            <div class="selector-buttons">
+                <button class="selector-btn active" data-sort="kills">击杀榜</button>
+                <button class="selector-btn" data-sort="kd">KD榜</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 排行榜数据 -->
+    {% for period in ['total', 'year', 'month', 'week', 'day'] %}
+        {% for team_type in ['total', TEAM_TYPE_VEHICLE, TEAM_TYPE_INFANTRY] %}
+            {% for sort_type in ['kills', 'kd'] %}
+                <div class="leaderboard-table {% if period == 'total' and team_type == 'total' and sort_type == 'kills' %}active{% endif %}"
+                     id="leaderboard-{{ period }}-{{ team_type }}-{{ sort_type }}">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>昵称</th>
+                                <th>{% if sort_type == 'kills' %}击杀{% else %}K/D比{% endif %}</th>
+                                <th>{% if sort_type == 'kills' %}死亡{% else %}击杀{% endif %}</th>
+                                <th>{% if sort_type == 'kills' %}K/D比{% else %}死亡{% endif %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in leaderboard_data[period][team_type][sort_type] %}
+                                <tr class="rank-{{ loop.index }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ user.username }}</td>
+                                    <td>{% if sort_type == 'kills' %}{{ user.kills }}{% else %}{{ user.kd_ratio }}{% endif %}</td>
+                                    <td>{% if sort_type == 'kills' %}{{ user.deaths }}{% else %}{{ user.kills }}{% endif %}</td>
+                                    <td>{% if sort_type == 'kills' %}{{ user.kd_ratio }}{% else %}{{ user.deaths }}{% endif %}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="no-data">暂无数据</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    {% endfor %}
+</div>
+
+<style>
+.leaderboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(10, 25, 47, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(100, 255, 218, 0.1);
+    border: 1px solid var(--accent-color);
+    backdrop-filter: blur(10px);
+}
+
+.leaderboard-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-family: 'Orbitron', sans-serif;
+    text-shadow: 0 0 20px rgba(100, 255, 218, 0.5);
+    position: relative;
+}
+
+.leaderboard-container h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    background: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+.selector-container {
+    background: rgba(23, 42, 69, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.05);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: start;
+}
+
+.selector-group {
+    margin: 0;
+    text-align: center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.selector-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Orbitron', sans-serif;
+    opacity: 0.9;
+}
+
+.selector-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.selector-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 70px;
+    color: var(--text-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.selector-btn:hover {
+    background: var(--secondary-color);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
+}
+
+.selector-btn.active {
+    background: var(--secondary-color);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: 600;
+    box-shadow: 0 0 15px rgba(100, 255, 218, 0.15);
+}
+
+.leaderboard-table {
+    display: none;
+    margin-top: 20px;
+    background: rgba(23, 42, 69, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.05);
+    border: 1px solid var(--border-color);
+}
+
+.leaderboard-table.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+th, td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+th {
+    background: var(--primary-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--accent-color);
+    font-family: 'Orbitron', sans-serif;
+}
+
+tbody tr {
+    transition: all 0.3s;
+}
+
+tbody tr:hover {
+    background: var(--secondary-color);
+    transform: scale(1.01);
+}
+
+.rank-1 td {
+    background: linear-gradient(135deg, rgba(100, 255, 218, 0.2), rgba(10, 25, 47, 0.9));
+    font-weight: 600;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+.rank-2 td {
+    background: linear-gradient(135deg, rgba(230, 241, 255, 0.1), rgba(10, 25, 47, 0.9));
+    font-weight: 600;
+}
+
+.rank-3 td {
+    background: linear-gradient(135deg, rgba(35, 53, 84, 0.3), rgba(10, 25, 47, 0.9));
+    font-weight: 600;
+}
+
+.rank-1 td:first-child,
+.rank-2 td:first-child,
+.rank-3 td:first-child {
+    position: relative;
+}
+
+.rank-1 td:first-child::before {
+    content: "🏆";
+    position: absolute;
+    left: 5px;
+    text-shadow: 0 0 10px var(--accent-color);
+}
+
+.rank-2 td:first-child::before {
+    content: "🥈";
+    position: absolute;
+    left: 5px;
+    text-shadow: 0 0 10px rgba(230, 241, 255, 0.5);
+}
+
+.rank-3 td:first-child::before {
+    content: "🥉";
+    position: absolute;
+    left: 5px;
+    text-shadow: 0 0 10px rgba(35, 53, 84, 0.5);
+}
+
+.no-data {
+    text-align: center;
+    color: var(--text-color);
+    padding: 30px;
+    font-style: italic;
+    background: var(--primary-color);
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .selector-btn {
+        min-width: 60px;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    .selector-label {
+        font-size: 14px;
+    }
+
+    .leaderboard-container h2 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .selector-container {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .selector-group {
+        min-width: 150px;
+        max-width: 100%;
+    }
+
+    .selector-btn {
+        min-width: 60px;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .selector-label {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .selector-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .selector-group {
+        width: 100%;
+        max-width: none;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function updateTable() {
+        const activePeriod = document.querySelector('[data-period].active').dataset.period;
+        const activeTeam = document.querySelector('[data-team].active').dataset.team;
+        const activeSort = document.querySelector('[data-sort].active').dataset.sort;
+        
+        document.querySelectorAll('.leaderboard-table').forEach(table => {
+            table.classList.remove('active');
+        });
+        
+        const targetTable = document.getElementById(`leaderboard-${activePeriod}-${activeTeam}-${activeSort}`);
+        if (targetTable) {
+            targetTable.classList.add('active');
+        }
+    }
+
+    // 为所有选择器按钮添加点击事件
+    document.querySelectorAll('.selector-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // 找到同组的按钮（具有相同的数据属性）
+            const attribute = Object.keys(this.dataset)[0];
+            document.querySelectorAll(`[data-${attribute}]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            updateTable();
+        });
+    });
+});
+</script>
+{% endblock %}

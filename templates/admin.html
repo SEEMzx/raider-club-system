@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>管理后台</h2>
+    
+    <div class="admin-section">
+        <h3>成员列表</h3>
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>昵称</th>
+                    <th>身份</th>
+                    <th>打卡次数</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ "管理员" if user.is_admin else "成员" }}</td>
+                    <td>{{ user.checkins|length }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
